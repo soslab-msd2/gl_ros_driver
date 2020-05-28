@@ -1,7 +1,3 @@
-#include <chrono>
-#include <thread>
-#include <iostream>
-
 #include "gl_driver.h"
 
 
@@ -28,7 +24,6 @@ uint8_t cs_;
 
 Gl::Gl(std::string &port, uint32_t baudrate)
 {
-    /* initialize pointer to a new Serial port object */
     port_ = new serial::Serial(port, baudrate, serial::Timeout::simpleTimeout(100));
     if(port_->isOpen()) printf("GL Serial is opened.\n");
 }
@@ -72,11 +67,11 @@ void write(uint8_t data)
 
 bool read(uint8_t *data)
 {
-    uint8_t buff[1];
-    if (port_->read(buff, 1) == 1)
+    uint8_t buff;
+    if (port_->read(&buff, 1) == 1)
     {
-        *data = buff[0];
-        cs_update(buff[0]);
+        *data = buff;
+        cs_update(buff);
         return true;
     }
     else
@@ -87,12 +82,12 @@ bool read(uint8_t *data)
 
 void write_PS()
 {   
-    uint8_t PS[4] = {PS1, PS2, PS3, PS4};
+    std::vector<uint8_t> PS = {PS1, PS2, PS3, PS4};
 
-    for(int i=0; i<4; i++) write(PS[i]);
+    for(int i=0; i<PS.size(); i++) write(PS[i]);
 }
 
-void write_packet(uint8_t PI, uint8_t PL, uint8_t SM, uint8_t CAT0, uint8_t CAT1, uint16_t DTL, uint8_t *DTn)
+void write_packet(uint8_t PI, uint8_t PL, uint8_t SM, uint8_t CAT0, uint8_t CAT1, std::vector<uint8_t> DTn)
 {
     uint8_t buff;
 
@@ -100,6 +95,8 @@ void write_packet(uint8_t PI, uint8_t PL, uint8_t SM, uint8_t CAT0, uint8_t CAT1
     cs_clear();
 
     write_PS();
+
+    uint16_t DTL = DTn.size();
 
     uint16_t TL = DTL + 14;
     buff = TL&0xff;
@@ -151,85 +148,71 @@ bool check_PS(void)
     return false;
 }
 
-bool read_packet(uint8_t SM, uint8_t CAT0, uint8_t CAT1, uint16_t *DTL, uint8_t *DTn)
+std::vector<uint8_t> read_packet(uint8_t SM_check, uint8_t CAT0_check, uint8_t CAT1_check)
 {
-    uint8_t buff;
+    std::vector<uint8_t> packet_data;
 
-    if(check_PS())
+    uint8_t buff;
+    while(check_PS())
     {
-        if(!read(&buff)) return false;
+        packet_data.clear();
+
+        if(!read(&buff)) return packet_data;
         uint16_t TL = buff&0xff;
-        if(!read(&buff)) return false;
+        if(!read(&buff)) return packet_data;
         TL |= (uint16_t)(buff&0xff)<<8;
 
-        if(!read(&buff)) return false;
-        if(!read(&buff)) return false;
+        if(!read(&buff)) return packet_data;
+        if(!read(&buff)) return packet_data;
            
-        if(!read(&buff) || SM!=buff&0xff) return false;
+        if(!read(&buff)) return packet_data;
+        uint8_t SM = buff&0xff;
             
-        if(!read(&buff) || BI_GL3102PC!=buff&0xff) return false;
+        if(!read(&buff) || BI_GL3102PC!=buff&0xff) return packet_data;
             
-        if(!read(&buff) || CAT0!=buff&0xff) return false;
-        if(!read(&buff) || CAT1!=buff&0xff) return false;
+        if(!read(&buff)) return packet_data;
+        uint8_t CAT0 = buff&0xff;
+        
+        if(!read(&buff)) return packet_data;
+        uint8_t CAT1 = buff&0xff;
 
-        *DTL = TL - 14;
+        uint16_t DTL = TL - 14;
             
-        for(int i=0; i<*DTL; i++)
+        for(int i=0; i<DTL; i++)
         {
-            if(!read(&buff)) return false;
-            DTn[i] = buff;
+            if(!read(&buff))
+            {
+                packet_data.clear();
+                return packet_data;
+            }
+            packet_data.push_back(buff);
         }
             
-        if(!read(&buff) || PE!=buff&0xff) return false;
+        if(!read(&buff) || PE!=buff&0xff)
+        {
+            packet_data.clear();
+            return packet_data;
+        } 
 
         uint8_t cs = cs_get();
-        if(!read(&buff) || cs!=buff&0xff) return false;
-
-        return true;
-    }
-
-    return false;
-}
-
-
-/************************************************************
- * Read GL Conditions                                       *
- ************************************************************/
-
-std::string Gl::GetSerialNum(void)
-{
-    std::string out_str;
-
-    uint8_t PI = 0;
-    uint8_t PL = 1;
-    uint8_t SM = SM_GET;
-    uint8_t CAT0 = 0x02;
-    uint8_t CAT1 = 0x0A;
-
-    uint16_t DTL = 1;
-    uint8_t DTn[DTL] = {1};
-    write_packet(PI, PL, SM, CAT0, CAT1, DTL, DTn);
-
-    uint16_t DTL2;
-    uint8_t DTn2[15];
-
-    for(int i=0; i<10; i++)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        if(read_packet(SM, CAT0, CAT1, &DTL2, DTn2))
+        if(!read(&buff) || cs!=buff&0xff) 
         {
-            out_str = std::string((char*)DTn2);
-            out_str.resize(DTL2);
-            return out_str;
+            packet_data.clear();
+            return packet_data;
         }
+
+        if((SM==SM_check) && (CAT0==CAT0_check) && (CAT1==CAT1_check)) return packet_data;
     }
-    
-    out_str = "[ERROR] Serial Number is not received.";
-    return out_str;
+
+    packet_data.clear();
+    return packet_data;
 }
 
+//////////////////////////////////////////////////////////////
+// Read GL Conditions
+//////////////////////////////////////////////////////////////
 
-Gl::framedata_t ParsingFrameData(uint16_t DTL, uint8_t *data)
+Gl::framedata_t ParsingFrameData(std::vector<uint8_t> data)
 {
     Gl::framedata_t frame_data;
 
@@ -251,7 +234,7 @@ Gl::framedata_t ParsingFrameData(uint16_t DTL, uint8_t *data)
         pulse_width[i] = data[i*4+4]&0xff;
         pulse_width[i] |= (uint16_t)(data[i*4+5]&0xff)<<8;
 
-        frame_data.distance[i] = distance[i];
+        frame_data.distance[i] = distance[i]/1000.0;
         frame_data.pulse_width[i] = pulse_width[i];
         frame_data.angle[i] = (-90.0+(double)i*180.0/1000.0)*3.141592/180.0;
     }
@@ -267,31 +250,28 @@ Gl::framedata_t Gl::ReadFrameData(void)
     uint8_t CAT0 = 0x01;
     uint8_t CAT1 = 0x02;
 
-    uint16_t DTL;
-    uint8_t DTn[5000];
-    if(read_packet(SM, CAT0, CAT1, &DTL, DTn)) 
+    std::vector<uint8_t> packet_data = read_packet(SM, CAT0, CAT1);
+    if(packet_data.size()>0)
     {
-        frame_data = ParsingFrameData(DTL, DTn);
+        frame_data = ParsingFrameData(packet_data);
     }
 
     return frame_data;
 }
 
-
 //////////////////////////////////////////////////////////////
-// Set GL Conditions                                       
+// Set GL Conditions
 //////////////////////////////////////////////////////////////
 
-void Gl::SetFrameDataEnable(bool framedata_enable)
+void Gl::SetFrameDataEnable(uint8_t framedata_enable)
 {
     uint8_t PI = 0;
     uint8_t PL = 1;
     uint8_t SM = SM_SET;
-    uint8_t CAT0 = 0x01;
-    uint8_t CAT1 = 0x03;
+    uint8_t CAT0 = 0x1;
+    uint8_t CAT1 = 0x3;
 
-    uint16_t DTL = 1;
-    uint8_t DTn[DTL] = {framedata_enable};
-    write_packet(PI, PL, SM, CAT0, CAT1, DTL, DTn);
+    std::vector<uint8_t> DTn = {framedata_enable};
+    write_packet(PI, PL, SM, CAT0, CAT1, DTn);
 }
 
