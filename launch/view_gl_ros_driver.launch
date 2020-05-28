@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find gl_ros_driver)/launch/gl_ros_driver.launch" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gl_ros_driver)/rviz/gl_config.rviz" />
+</launch>
