@@ -23,6 +23,9 @@ int main(int argc, char** argv)
 
     // GL Init
     Gl gl(serial_port_name,921600);
+    gl.SetFrameDataEnable(false);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::cout << "Serial Num : " << gl.GetSerialNum() << std::endl;
     gl.SetFrameDataEnable(true);
 
     // loop

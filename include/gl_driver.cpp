@@ -212,6 +212,31 @@ std::vector<uint8_t> read_packet(uint8_t SM_check, uint8_t CAT0_check, uint8_t C
 // Read GL Conditions
 //////////////////////////////////////////////////////////////
 
+std::string Gl::GetSerialNum(void)
+{
+    uint8_t PI = 0;
+    uint8_t PL = 1;
+    uint8_t SM = SM_GET;
+    uint8_t CAT0 = 0x02;
+    uint8_t CAT1 = 0x0A;
+
+    std::vector<uint8_t> DTn = {1};
+    write_packet(PI, PL, SM, CAT0, CAT1, DTn);
+
+    for(int i=0; i<100; i++)
+    {
+        std::vector<uint8_t> packet_data = read_packet(SM, CAT0, CAT1);
+        if(packet_data.size()>0)
+        {
+            std::string out_str(packet_data.begin(), packet_data.end());
+            return out_str;
+        }
+    }
+    
+    std::string out_str = "[ERROR] Serial Number is not received.";
+    return out_str;
+}
+
 Gl::framedata_t ParsingFrameData(std::vector<uint8_t> data)
 {
     Gl::framedata_t frame_data;

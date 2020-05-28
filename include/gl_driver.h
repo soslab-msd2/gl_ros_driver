@@ -29,6 +29,7 @@ class Gl
 		Gl(std::string &port, uint32_t baudrate);
 		~Gl();
 
+		std::string GetSerialNum(void);
 		framedata_t ReadFrameData(void);
 		void SetFrameDataEnable(uint8_t framedata_enable);
 };
