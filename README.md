@@ -31,16 +31,6 @@ $ roslaunch gl_ros_driver gl_ros_driver.launch
 $ roslaunch gl_ros_driver view_gl_ros_driver.launch
 ```
 - Change serial port or frame_id in `gl_ros_driver/launch/gl_ros_driver.launch`
-```xml
-<?xml version="1.0"?>
-<launch>
-    <node pkg="gl_ros_driver" type="gl_ros_driver_node" name="gl_ros_driver_node" output="screen">
-        <param name="serial_port_name" type="string" value="/dev/ttyUSB0"/>
-        <param name="frame_id" type="string" value="laser"/>
-        <param name="pub_topicname_lidar" type="string" value="scan"/>
-    </node>
-</launch>
-```
 
 ## Published Topics
 - _scan_ (sensor_msgs/LaserScan): it publishes scan topic from the laser.
