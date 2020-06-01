@@ -24,14 +24,24 @@ uint8_t cs_;
 
 Gl::Gl(std::string &port, uint32_t baudrate)
 {
-    port_ = new serial::Serial(port, baudrate, serial::Timeout::simpleTimeout(100));
-    if(port_->isOpen()) printf("GL Serial is opened.\n");
+    OpenSerial(port, baudrate);
+}
+
+Gl::Gl()
+{
+    ;
 }
 
 Gl::~Gl()
 {
     port_->close();
     delete port_;
+}
+
+void Gl::OpenSerial(std::string &port, uint32_t baudrate)
+{
+    port_ = new serial::Serial(port, baudrate, serial::Timeout::simpleTimeout(100));
+    if(port_->isOpen()) std::cout << "GL Serial is opened." << std::endl;
 }
 
 
@@ -89,8 +99,6 @@ void write_PS()
 
 void write_packet(uint8_t PI, uint8_t PL, uint8_t SM, uint8_t CAT0, uint8_t CAT1, std::vector<uint8_t> DTn)
 {
-    uint8_t buff;
-
     flush();
     cs_clear();
 
@@ -99,7 +107,7 @@ void write_packet(uint8_t PI, uint8_t PL, uint8_t SM, uint8_t CAT0, uint8_t CAT1
     uint16_t DTL = DTn.size();
 
     uint16_t TL = DTL + 14;
-    buff = TL&0xff;
+    uint8_t buff = TL&0xff;
     write(buff);
     buff = (TL>>8)&0xff;
     write(buff);
@@ -120,10 +128,9 @@ void write_packet(uint8_t PI, uint8_t PL, uint8_t SM, uint8_t CAT0, uint8_t CAT1
 
 bool check_PS(void)
 {
-    uint8_t data;
-    
     cs_clear();
 
+    uint8_t data;
     while(read(&data)) 
     {
         if(data==PS1)
@@ -152,15 +159,15 @@ std::vector<uint8_t> read_packet(uint8_t SM_check, uint8_t CAT0_check, uint8_t C
 {
     std::vector<uint8_t> packet_data;
 
-    uint8_t buff;
     while(check_PS())
     {
         packet_data.clear();
 
+        uint8_t buff;
         if(!read(&buff)) return packet_data;
         uint16_t TL = buff&0xff;
         if(!read(&buff)) return packet_data;
-        TL |= (uint16_t)(buff&0xff)<<8;
+        TL |= ((uint16_t)(buff&0xff))<<8;
 
         if(!read(&buff)) return packet_data;
         if(!read(&buff)) return packet_data;
@@ -168,7 +175,7 @@ std::vector<uint8_t> read_packet(uint8_t SM_check, uint8_t CAT0_check, uint8_t C
         if(!read(&buff)) return packet_data;
         uint8_t SM = buff&0xff;
             
-        if(!read(&buff) || BI_GL3102PC!=buff&0xff) return packet_data;
+        if(!read(&buff) || (BI_GL3102PC!=(buff&0xff))) return packet_data;
             
         if(!read(&buff)) return packet_data;
         uint8_t CAT0 = buff&0xff;
@@ -188,14 +195,14 @@ std::vector<uint8_t> read_packet(uint8_t SM_check, uint8_t CAT0_check, uint8_t C
             packet_data.push_back(buff);
         }
             
-        if(!read(&buff) || PE!=buff&0xff)
+        if(!read(&buff) || (PE!=(buff&0xff)))
         {
             packet_data.clear();
             return packet_data;
         } 
 
         uint8_t cs = cs_get();
-        if(!read(&buff) || cs!=buff&0xff) 
+        if(!read(&buff) || (cs!=(buff&0xff)))
         {
             packet_data.clear();
             return packet_data;
@@ -239,29 +246,24 @@ std::string Gl::GetSerialNum(void)
 
 Gl::framedata_t ParsingFrameData(std::vector<uint8_t> data)
 {
+    uint16_t frame_data_size = data[0]&0xff;
+    frame_data_size |= ((uint16_t)(data[1]&0xff))<<8;
+
     Gl::framedata_t frame_data;
-
-    uint16_t frame_data_size;
-    frame_data_size = data[0]&0xff;
-    frame_data_size |= (data[1]&0xff)<<8;
-
-    uint16_t distance[frame_data_size];
-    uint16_t pulse_width[frame_data_size];
-
     frame_data.distance.resize(frame_data_size);
     frame_data.pulse_width.resize(frame_data_size);
     frame_data.angle.resize(frame_data_size);
     for(int i=0; i<frame_data_size; i++)
     {
-        distance[i] = data[i*4+2]&0xff;
-        distance[i] |= (uint16_t)(data[i*4+3]&0xff)<<8;
+        uint16_t distance = data[i*4+2]&0xff;
+        distance |= ((uint16_t)(data[i*4+3]&0xff))<<8;
 
-        pulse_width[i] = data[i*4+4]&0xff;
-        pulse_width[i] |= (uint16_t)(data[i*4+5]&0xff)<<8;
+        uint16_t pulse_width = data[i*4+4]&0xff;
+        pulse_width |= ((uint16_t)(data[i*4+5]&0xff))<<8;
 
-        frame_data.distance[i] = distance[i]/1000.0;
-        frame_data.pulse_width[i] = pulse_width[i];
-        frame_data.angle[i] = (-90.0+(double)i*180.0/1000.0)*3.141592/180.0;
+        frame_data.distance[i] = distance/1000.0;
+        frame_data.pulse_width[i] = pulse_width;
+        frame_data.angle[i] = i*180.0/(frame_data_size-1)*3.141592/180.0;
     }
 
     return frame_data;
@@ -299,4 +301,3 @@ void Gl::SetFrameDataEnable(uint8_t framedata_enable)
     std::vector<uint8_t> DTn = {framedata_enable};
     write_packet(PI, PL, SM, CAT0, CAT1, DTn);
 }
-

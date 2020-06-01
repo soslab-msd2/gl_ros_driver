@@ -8,7 +8,8 @@ int main(int argc, char** argv)
 {
     // ros init
     std::string serial_port_name = std::string("/dev/ttyUSB0");
-    std::string frame_id = std::string("base");
+    int serial_baudrate = 921600;
+    std::string frame_id = std::string("laser");
     std::string pub_topicname_lidar = std::string("scan");
     
     ros::init(argc, argv, "gl_ros_driver_node");
@@ -16,13 +17,14 @@ int main(int argc, char** argv)
     ros::NodeHandle nh_priv("~");
 
     nh_priv.param("serial_port_name", serial_port_name, serial_port_name);
+    nh_priv.param("serial_baudrate", serial_baudrate, serial_baudrate);
     nh_priv.param("frame_id", frame_id, frame_id);
     nh_priv.param("pub_topicname_lidar", pub_topicname_lidar, pub_topicname_lidar);
 
     ros::Publisher data_pub = nh.advertise<sensor_msgs::LaserScan>(pub_topicname_lidar, 10);
 
     // GL Init
-    Gl gl(serial_port_name,921600);
+    Gl gl(serial_port_name,serial_baudrate);
     gl.SetFrameDataEnable(false);
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     std::cout << "Serial Num : " << gl.GetSerialNum() << std::endl;
@@ -48,7 +50,7 @@ int main(int argc, char** argv)
             scan_msg.ranges.resize(num_data);
             for(int i=0; i<num_data; i++)
             {
-                scan_msg.ranges[i] = (double)frame_data.distance[i];
+                scan_msg.ranges[i] = frame_data.distance[i];
             }
             
             data_pub.publish(scan_msg);

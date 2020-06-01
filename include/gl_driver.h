@@ -27,7 +27,10 @@ class Gl
 
 	public:
 		Gl(std::string &port, uint32_t baudrate);
+		Gl();
 		~Gl();
+
+		void OpenSerial(std::string &port, uint32_t baudrate);
 
 		std::string GetSerialNum(void);
 		framedata_t ReadFrameData(void);
