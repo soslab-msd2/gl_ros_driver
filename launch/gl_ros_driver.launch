@@ -1,6 +1,6 @@
 <launch>
     <!-- execute GL310 for point-cloud publish -->
-    <arg name="port_name" default="/dev/ttyUSB1"/>
+    <arg name="port_name" default="/dev/ttyUSB0"/>
     <node pkg="gl_ros_driver" type="gl_ros_driver_node" name="gl_ros_driver_node" output="screen">
         <param name="serial_port_name" type="string" value="$(arg port_name)"/>
         <param name="serial_baudrate" type="int" value="921600"/>
