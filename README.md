@@ -1,9 +1,4 @@
 # GL-3 (Mechanical scanning 2D LiDAR)
-<p align="center">
-<img src="http://soslab.co/wp-content/uploads/2020/01/CES-%ED%99%88%ED%8E%98%EC%9D%B4%EC%A7%80-%EC%9D%B4%EB%AF%B8%EC%A7%80-07-1.png" width="300">
-<img src="http://soslab.co/wp-content/uploads/2020/01/CES-%ED%99%88%ED%8E%98%EC%9D%B4%EC%A7%80-%EC%9D%B4%EB%AF%B8%EC%A7%80-32-2.png" width="500">
-<img src="http://soslab.co/wp-content/uploads/2020/01/CES-%ED%99%88%ED%8E%98%EC%9D%B4%EC%A7%80-%EC%9D%B4%EB%AF%B8%EC%A7%80-20-3.png" width="800">
-</p>
 
 ## Guide
 * Installation
