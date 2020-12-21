@@ -25,16 +25,16 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_library(serial
-  include/serial/serial.cc
-  include/serial/list_ports_linux.cc
-  include/serial/unix.cc
-  include/serial/win.cc
-)
+if(NOT TARGET serial)
+file(GLOB serial_src "include/serial/*.cc")
+add_library(serial SHARED ${serial_src})
+endif()
 
+if(NOT TARGET gl_driver)
 add_library(gl_driver
   include/gl_driver.cpp
 )
+endif()
 
 
 add_executable(${PROJECT_NAME}_node
@@ -48,6 +48,4 @@ target_link_libraries(${PROJECT_NAME}_node
 add_dependencies(${PROJECT_NAME}_node
   ${${PROJECT_NAME}_EXPORTED_TARGETS} 
   ${catkin_EXPORTED_TARGETS}
-  gl_driver
-  serial
 )
