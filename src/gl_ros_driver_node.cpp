@@ -43,7 +43,7 @@ int main(int argc, char** argv)
             scan_msg.angle_min = frame_data.angle[0];
             scan_msg.angle_max = frame_data.angle[num_data-1];
             scan_msg.angle_increment = (scan_msg.angle_max - scan_msg.angle_min) / (double)(num_data-1);
-            scan_msg.range_min = 0.1;
+            scan_msg.range_min = 0.001;
             scan_msg.range_max = 30.0;
             scan_msg.ranges.resize(num_data);
             for(int i=0; i<num_data; i++)
