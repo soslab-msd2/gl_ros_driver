@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     gl.SetFrameDataEnable(true);
 
     // loop
-    ros::Rate loop_rate(40);
+    ros::Rate loop_rate(80);
     while(ros::ok())
     {
         sensor_msgs::LaserScan scan_msg;

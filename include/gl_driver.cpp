@@ -273,7 +273,7 @@ void ParsingFrameData(Gl::framedata_t& frame_data, std::vector<uint8_t>& data)
     uint16_t frame_data_size = data[0]&0xff;
     frame_data_size |= ((uint16_t)(data[1]&0xff))<<8;
 
-    if(data.size()<(frame_data_size*4+22)) return;
+    if(data.size()!=(frame_data_size*4+22)) return;
 
     frame_data.distance.resize(frame_data_size);
     frame_data.pulse_width.resize(frame_data_size);
@@ -309,11 +309,14 @@ void ParsingData(std::vector<uint8_t>& recv_data, int PI, int PL, int SM, int CA
         else
         {
             std::copy(recv_data.begin(), recv_data.end(), std::back_inserter(lidar_data));
-            if(PI==3)
-            {
-                ParsingFrameData(frame_data_in, lidar_data);
-                lidar_data.clear();
-            }
+        }
+
+        if(PI==(PL-1))
+        {
+            Gl::framedata_t frame_data;
+            ParsingFrameData(frame_data, lidar_data);
+            frame_data_in = frame_data;
+            lidar_data.clear();
         }
     }
 
@@ -460,7 +463,12 @@ std::string Gl::GetSerialNum(void)
 
 void Gl::ReadFrameData(Gl::framedata_t& frame_data, bool filter_on)
 {
+    if(frame_data_in.distance.size()==0) return;
+
     frame_data = frame_data_in;
+    frame_data_in.angle.clear();
+    frame_data_in.distance.clear();
+    frame_data_in.pulse_width.clear();
     
     if(filter_on==true)
     {
