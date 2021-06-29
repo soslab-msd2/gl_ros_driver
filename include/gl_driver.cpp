@@ -49,6 +49,7 @@ std::vector<uint8_t> recv_data;
 
 std::vector<uint8_t> serial_num;
 std::vector<uint8_t> lidar_data;
+Gl::framedata_t frame_data_in;
 
 
 //////////////////////////////////////////////////////////////
@@ -84,14 +85,6 @@ Gl::Gl(std::string& gl_ip, int gl_port, int pc_port)
 		exit(EXIT_FAILURE); 
 	} 
     
-    // set socket timeout
-	timeval tv;
-    tv.tv_sec  = 1;
-    tv.tv_usec = 10000;
-    int a = 212992;
-	setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(timeval));
-    setsockopt(sockfd_, SOL_SOCKET, SO_RCVBUF, &a, sizeof(int));
-
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::cout << "Socket START [" << sockfd_ << "]" << std::endl;
@@ -273,6 +266,31 @@ int check_PS(uint8_t data)
     return 1;
 }
 
+void ParsingFrameData(Gl::framedata_t& frame_data, std::vector<uint8_t>& data)
+{
+    if(data.size()==0) return;
+
+    uint16_t frame_data_size = data[0]&0xff;
+    frame_data_size |= ((uint16_t)(data[1]&0xff))<<8;
+
+    if(data.size()<(frame_data_size*4+22)) return;
+
+    frame_data.distance.resize(frame_data_size);
+    frame_data.pulse_width.resize(frame_data_size);
+    frame_data.angle.resize(frame_data_size);
+    for(size_t i=0; i<frame_data_size; i++)
+    {
+        uint16_t distance = data[i*4+2]&0xff;
+        distance |= ((uint16_t)(data[i*4+3]&0xff))<<8;
+
+        uint16_t pulse_width = data[i*4+4]&0xff;
+        pulse_width |= ((uint16_t)(data[i*4+5]&0xff))<<8;
+
+        frame_data.distance[i] = distance/1000.0;
+        frame_data.pulse_width[i] = pulse_width;
+        frame_data.angle[i] = i*180.0/(frame_data_size-1)*3.141592/180.0;
+    }
+}
 
 void ParsingData(std::vector<uint8_t>& recv_data, int PI, int PL, int SM, int CAT0, int CAT1)
 {
@@ -291,6 +309,11 @@ void ParsingData(std::vector<uint8_t>& recv_data, int PI, int PL, int SM, int CA
         else
         {
             std::copy(recv_data.begin(), recv_data.end(), std::back_inserter(lidar_data));
+            if(PI==3)
+            {
+                ParsingFrameData(frame_data_in, lidar_data);
+                lidar_data.clear();
+            }
         }
     }
 
@@ -435,38 +458,10 @@ std::string Gl::GetSerialNum(void)
     return out_str;
 }
 
-void ParsingFrameData(Gl::framedata_t& frame_data, std::vector<uint8_t>& data)
-{
-    if(data.size()==0) return;
-
-    uint16_t frame_data_size = data[0]&0xff;
-    frame_data_size |= ((uint16_t)(data[1]&0xff))<<8;
-
-    if(data.size()<(frame_data_size*4+22)) return;
-
-    frame_data.distance.resize(frame_data_size);
-    frame_data.pulse_width.resize(frame_data_size);
-    frame_data.angle.resize(frame_data_size);
-    for(size_t i=0; i<frame_data_size; i++)
-    {
-        uint16_t distance = data[i*4+2]&0xff;
-        distance |= ((uint16_t)(data[i*4+3]&0xff))<<8;
-
-        uint16_t pulse_width = data[i*4+4]&0xff;
-        pulse_width |= ((uint16_t)(data[i*4+5]&0xff))<<8;
-
-        frame_data.distance[i] = distance/1000.0;
-        frame_data.pulse_width[i] = pulse_width;
-        frame_data.angle[i] = i*180.0/(frame_data_size-1)*3.141592/180.0;
-    }
-}
-
 void Gl::ReadFrameData(Gl::framedata_t& frame_data, bool filter_on)
 {
-    ParsingFrameData(frame_data, lidar_data);
-    if(frame_data.distance.size()==0) return;
-
-    lidar_data.clear();
+    frame_data = frame_data_in;
+    
     if(filter_on==true)
     {
         for(int i=0; i<(int)frame_data.distance.size()-1; i++)
