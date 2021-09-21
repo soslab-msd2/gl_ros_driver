@@ -22,7 +22,7 @@ int main(int argc, char** argv)
     ros::Publisher data_pub = nh.advertise<sensor_msgs::LaserScan>(pub_topicname_lidar, 10);
 
     // GL Init
-    Gl gl(serial_port_name, 921600);
+    GL gl(serial_port_name, 921600);
     std::cout << "Serial Num : " << gl.GetSerialNum() << std::endl;
     gl.SetFrameDataEnable(true);
 
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     {
         sensor_msgs::LaserScan scan_msg;
 
-        Gl::framedata_t frame_data;
+        GL::framedata_t frame_data;
         gl.ReadFrameData(frame_data);
         
         int num_data = frame_data.distance.size();

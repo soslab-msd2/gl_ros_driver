@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-  INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp sensor_msgs
 )
 
@@ -22,18 +21,20 @@ catkin_package(
 
 include_directories(
   include
+  include/gl_driver_libraries
   ${catkin_INCLUDE_DIRS}
 )
 
-if(NOT TARGET serial)
-file(GLOB serial_src "include/serial/*.cc")
+if (NOT TARGET serial)
+file(GLOB serial_src "include/gl_driver_libraries/serial/*.cc")
 add_library(serial SHARED ${serial_src})
 endif()
-
-if(NOT TARGET gl_driver)
-add_library(gl_driver
-  include/gl_driver.cpp
-)
+if (NOT TARGET udp)
+file(GLOB udp_src "include/gl_driver_libraries/udp/*.cpp")
+add_library(udp SHARED ${udp_src})
+endif()
+if (NOT TARGET gl_driver)
+add_library(gl_driver SHARED include/gl_driver_libraries/gl_driver.cpp)
 endif()
 
 
@@ -44,6 +45,7 @@ target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   gl_driver
   serial
+  udp
 )
 add_dependencies(${PROJECT_NAME}_node
   ${${PROJECT_NAME}_EXPORTED_TARGETS} 
