@@ -7,9 +7,10 @@
 int main(int argc, char** argv)
 {
     // ros init
-    std::string serial_port_name = std::string("/dev/ttyUSB0");
-    std::string frame_id = std::string("laser");
-    std::string pub_topicname_lidar = std::string("scan");
+    std::string serial_port_name;
+    std::string frame_id;
+    std::string pub_topicname_lidar;
+    double angle_offset;
     
     ros::init(argc, argv, "gl_ros_driver_node");
     ros::NodeHandle nh;
@@ -18,11 +19,12 @@ int main(int argc, char** argv)
     nh_priv.param("serial_port_name", serial_port_name, serial_port_name);
     nh_priv.param("frame_id", frame_id, frame_id);
     nh_priv.param("pub_topicname_lidar", pub_topicname_lidar, pub_topicname_lidar);
+    nh_priv.param("angle_offset", angle_offset, angle_offset);
 
     ros::Publisher data_pub = nh.advertise<sensor_msgs::LaserScan>(pub_topicname_lidar, 10);
 
     // GL Init
-    GL gl(serial_port_name, 921600);
+    gldriver::GL gl(serial_port_name, 921600);
     std::cout << "Serial Num : " << gl.GetSerialNum() << std::endl;
     gl.SetFrameDataEnable(true);
 
@@ -32,7 +34,7 @@ int main(int argc, char** argv)
     {
         sensor_msgs::LaserScan scan_msg;
 
-        GL::framedata_t frame_data;
+        gldriver::GL::framedata_t frame_data;
         gl.ReadFrameData(frame_data);
         
         int num_data = frame_data.distance.size();
@@ -40,8 +42,8 @@ int main(int argc, char** argv)
         {
             scan_msg.header.stamp = ros::Time::now();
             scan_msg.header.frame_id = frame_id;
-            scan_msg.angle_min = frame_data.angle[0];
-            scan_msg.angle_max = frame_data.angle[num_data-1];
+            scan_msg.angle_min = frame_data.angle[0] + angle_offset*3.141592/180.0;
+            scan_msg.angle_max = frame_data.angle[num_data-1] + angle_offset*3.141592/180.0;
             scan_msg.angle_increment = (scan_msg.angle_max - scan_msg.angle_min) / (double)(num_data-1);
             scan_msg.range_min = 0.001;
             scan_msg.range_max = 30.0;
@@ -60,5 +62,5 @@ int main(int argc, char** argv)
 
     gl.SetFrameDataEnable(false);
 
-    return 1;
+    return 0;
 }
