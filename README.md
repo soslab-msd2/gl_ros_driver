@@ -1,7 +1,7 @@
 # GL-3 (Mechanical scanning 2D LiDAR)
 
 ## Guide
-* Installation
+- Installation
 ```
 $ cd ${ROS workspace}/src
 $ git clone --recurse-submodules https://github.com/soslab-project/gl_ros_driver.git
