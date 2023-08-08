@@ -1,3 +1,0 @@
-[submodule "include/gl_driver_libraries"]
-	path = include/gl_driver_libraries
-	url = https://github.com/soslab-project/gl_driver_libraries

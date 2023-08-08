@@ -1,9 +1,0 @@
-<launch>
-    <!-- execute GL310 for point-cloud publish -->
-    <node pkg="gl_ros_driver" type="gl_ros_driver_node" name="gl_ros_driver_node" output="screen">
-        <param name="serial_port_name" type="string" value="/dev/ttyUSB0"/>
-        <param name="frame_id" type="string" value="laser"/>
-        <param name="pub_topicname_lidar" type="string" value="scan"/>
-        <param name="angle_offset" type="double" value="0.0"/>
-    </node>
-</launch>
